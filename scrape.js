@@ -27,8 +27,11 @@ export async function scrapeOCC(searchTerm) {
       '--no-first-run',
       '--no-zygote',
       '--disable-gpu',
-      '--single-process'
-    ]
+      '--single-process',
+      '--disable-web-security',
+      '--disable-features=VizDisplayCompositor'
+    ],
+    executablePath: process.env.PUPPETEER_EXECUTABLE_PATH || undefined
   });
   const page = await browser.newPage();
   await page.setViewport({ width: 1200, height: 800 });
