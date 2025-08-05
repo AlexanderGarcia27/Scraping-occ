@@ -17,24 +17,18 @@ function askQuestion(query) {
 const OCC_URL = 'https://www.occ.com.mx/';
 
 export async function scrapeOCC(searchTerm) {
-  const browser = await puppeteer.launch({ 
-    headless: true, 
+  const browser = await puppeteer.launch({
+    headless: true,
     args: [
+      '--start-maximized',
       '--no-sandbox',
       '--disable-setuid-sandbox',
-      '--disable-dev-shm-usage',
-      '--disable-accelerated-2d-canvas',
-      '--no-first-run',
-      '--no-zygote',
-      '--disable-gpu',
-      '--single-process',
-      '--disable-web-security',
-      '--disable-features=VizDisplayCompositor'
+      '--disable-blink-features=AutomationControlled'
     ],
-    executablePath: process.env.PUPPETEER_EXECUTABLE_PATH || undefined
+    defaultViewport: null
   });
   const page = await browser.newPage();
-  await page.setViewport({ width: 1200, height: 800 });
+  await page.setUserAgent('Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36');
   await page.goto(OCC_URL, { waitUntil: 'domcontentloaded' });
   await page.waitForSelector('#prof-cat-search-input-desktop', { timeout: 15000 });
   await page.type('#prof-cat-search-input-desktop', searchTerm);
