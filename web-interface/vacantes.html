@@ -79,23 +79,18 @@
   </div>
 
   <script>
-    let todasVacantes = [];
-    let radiusFilterActive = true;
-    let currentRadius = 200;
-    let currentMap = null;
-    let userLat = null;
-    let userLng = null;
-    let allGeocodedVacantes = [];
-  
+    const BACKEND_URL = 'https://scraping-occ.onrender.com'; // Cambia por tu URL real de Render
+
+    // Cambia los fetch para usar BACKEND_URL
     async function getVacantes() {
-      const res = await fetch('/resultados.json');
+      const res = await fetch(`${BACKEND_URL}/resultados.json`);
       const data = await res.json();
       return data.filter(v => v.sueldo && parseFloat(v.sueldo.replace(/[^\d.]/g, '')) > 0);
     }
 
     // NUEVA FUNCIÓN: Obtener TODAS las vacantes sin filtros
     async function getTodasVacantes() {
-      const res = await fetch('/resultados.json');
+      const res = await fetch(`${BACKEND_URL}/resultados.json`);
       const data = await res.json();
       return data; // TODAS las vacantes sin ningún filtro
     }
@@ -770,6 +765,13 @@
         document.removeEventListener('click', closeDescargarDropdownOnClickOutside);
       }
     }
+
+    // Cambia los enlaces de descarga dinámicamente al cargar la página
+    document.addEventListener('DOMContentLoaded', () => {
+      document.querySelector('a[download][href="/resultados.json"]').href = `${BACKEND_URL}/resultados.json`;
+      document.querySelector('a[download][href="/resultados.csv"]').href = `${BACKEND_URL}/resultados.csv`;
+      document.querySelector('a[download][href="/resultados.xlsx"]').href = `${BACKEND_URL}/resultados.xlsx`;
+    });
   </script>
 
   <footer class="w-full bg-gray-200 text-center py-4 mt-8 text-gray-600 font-medium">
