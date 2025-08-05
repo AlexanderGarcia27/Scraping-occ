@@ -7,6 +7,7 @@
   <script src="https://cdn.tailwindcss.com"></script>
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
 </head>
 
 <body class="bg-gray-100 min-h-screen">
@@ -24,6 +25,22 @@
         <button onclick="render('mayor')" class="px-6 py-2 bg-cyan-600 hover:bg-cyan-700 text-white font-bold rounded shadow">Mayor sueldo</button>
         <button onclick="render('menor')" class="px-6 py-2 bg-cyan-600 hover:bg-cyan-700 text-white font-bold rounded shadow">Menor sueldo</button>
         <button onclick="showMapaCercaDeTi()" class="px-6 py-2 bg-cyan-600 hover:bg-cyan-700 text-white font-bold rounded shadow">Cerca de ti</button>
+        <button onclick="render('equipo')" class="px-6 py-2 bg-cyan-600 hover:bg-cyan-700 text-white font-bold rounded shadow">Equipo</button>
+      </div>
+
+      <!-- Controles de descarga, solo visibles en la pestaña 'todas' -->
+      <div id="downloadButtons" class="flex gap-4 mb-4 items-center" style="display:none;">
+        <!-- Menú desplegable de descarga alineado con el primer card -->
+        <div class="relative ml-12" id="descargarDropdownWrapper" style="padding-left: 3.5rem;">
+          <button id="descargarDropdownBtn" onclick="toggleDescargarDropdown(event)" class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded shadow flex items-center gap-2" type="button">
+            <i class="bi bi-download"></i> Descargar <i class="bi bi-caret-down-fill ml-1"></i>
+          </button>
+          <div id="descargarDropdown" class="absolute left-0 mt-2 flex flex-col gap-2 bg-white rounded-lg shadow-lg p-2 z-20 min-w-[160px]" style="display:none;">
+            <a href="/resultados.json" download class="flex items-center gap-2 px-4 py-2 rounded hover:bg-cyan-100 text-cyan-700 font-semibold" title="Descargar JSON"><i class="bi bi-filetype-json"></i> JSON</a>
+            <a href="/resultados.csv" download class="flex items-center gap-2 px-4 py-2 rounded hover:bg-cyan-100 text-cyan-700 font-semibold" title="Descargar CSV"><i class="bi bi-filetype-csv"></i> CSV</a>
+            <a href="/resultados.xlsx" download class="flex items-center gap-2 px-4 py-2 rounded hover:bg-cyan-100 text-cyan-700 font-semibold" title="Descargar Excel"><i class="bi bi-file-earmark-excel-fill"></i> Excel</a>
+          </div>
+        </div>
       </div>
 
       <!-- Controles del mapa -->
@@ -56,6 +73,7 @@
 
       <!-- Contenido dinámico -->
       <div id="vacantesContainer" class="grid grid-cols-1 md:grid-cols-2 gap-8"></div>
+      <div id="equipoContainer" style="display:none;"></div>
       <div id="mapContainer" style="display:none; width:100%; height:500px; margin-top:2rem;"></div>
     </div>
   </div>
@@ -102,7 +120,23 @@
       document.getElementById('mapContainer').style.display = 'none';
       document.getElementById('mapControls').classList.add('hidden');
       document.getElementById('vacantesContainer').style.display = 'grid';
+      document.getElementById('equipoContainer').style.display = 'none';
       const contenedor = document.getElementById('vacantesContainer');
+      // Refuerza la lógica para mostrar/ocultar los botones de descarga solo en la pestaña 'todas'
+      const downloadDiv = document.getElementById('downloadButtons');
+      if (downloadDiv) {
+        if (filtro === 'todas') {
+          downloadDiv.style.display = 'flex';
+        } else {
+          downloadDiv.style.display = 'none';
+        }
+      }
+      if (filtro === 'equipo') {
+        document.getElementById('vacantesContainer').style.display = 'none';
+        document.getElementById('equipoContainer').style.display = 'grid';
+        renderEquipo();
+        return;
+      }
   
       if (todasVacantes.length === 0) {
         todasVacantes = await getVacantes();
@@ -335,6 +369,8 @@
               <p style="margin: 4px 0;"><strong>📍 Ubicación:</strong> ${v.ubicacion || 'Sin ubicación'}</p>
               <p style="margin: 4px 0;"><strong>💰 Sueldo:</strong> ${v.sueldo || ''}</p>
               <p style="margin: 4px 0;"><strong>🏠 Modalidad:</strong> ${v.detalles?.['Espacio de trabajo'] || ''}</p>
+              ${v.dist ? `<p style="margin: 4px 0; color: #666;"><strong>📏 Distancia:</strong> ${Math.round(v.dist)}km</p>` : ''}
+              ${v.searchTerm ? `<p style="margin: 4px 0; color: #888; font-size: 11px;"><strong>🔍 Búsqueda:</strong> "${v.searchTerm}"</p>` : ''}
             </div>
           `;
           L.marker([v.lat, v.lng], { icon: blueIcon }).addTo(currentMap)
@@ -477,7 +513,8 @@
                 try {
                   console.log(`Intentando búsqueda: "${searchTerm}"`);
                   
-                  const url = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(searchTerm)}&countrycodes=mx&limit=1&addressdetails=1`;
+                  // Usar el endpoint /geocode del backend para geocodificar
+                  const url = `/geocode?q=${encodeURIComponent(searchTerm)}`;
                   const res = await fetch(url);
                   const data = await res.json();
                   
@@ -659,7 +696,85 @@
       
       return ubicacionExpandida;
     }
+
+    // Renderizar equipo
+    function renderEquipo() {
+      const equipo = [
+        {
+          nombre: 'Alexander G. Rangel',
+          puesto: 'Ing. Desarrollo y Gestión de Software',
+          email: 'agr270404@gmail.com.com',
+          ubicacion: 'Hidalgo, Mex',
+          img: './img/189170048.png',
+          linkedin: 'https://www.linkedin.com/in/alexander-garcia-rangel-3946ba253?trk=contact-info ',
+          github: 'https://github.com/AlexanderGarcia27'
+        },
+        {
+          nombre: 'Luis Abel R. Ramirez',
+          puesto: 'Ing. Desarrollo y Gestión de Software',
+          email: 'luisabelrangelramirez@gmail.com',
+          ubicacion: 'Hidalgo, Mex',
+          img: './img/146997726.png',
+          linkedin: 'https://mx.linkedin.com/in/luis-abel-rangel-ramirez-9b66562b8',
+          github: 'https://github.com/Luis20Abel20'
+        },
+        {
+          nombre: 'Alan I. García',
+          puesto: 'Ing. Desarrollo y Gestión de Software',
+          email: 'kaj065vwv@gmail.com',
+          ubicacion: 'Hidalgo, Mex',
+          img: './img/160685724.png',
+          linkedin: 'https://mx.linkedin.com/in/alan-isidro-garcia-967a482b7?trk=people-guest_people_search-card&original_referer=https%3A%2F%2Fwww.linkedin.com%2F',
+          github: 'https://github.com/JakoHD'
+        }
+      ];
+      document.getElementById('equipoContainer').innerHTML = `
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-8 justify-items-center">
+          ${equipo.map(m => `
+            <div class="bg-white rounded-lg shadow p-6 w-full max-w-xs flex flex-col items-center border border-cyan-100">
+              <img src="${m.img}" alt="${m.nombre}" class="w-24 h-24 rounded-full mb-4 shadow">
+              <div class="font-bold text-xl mb-1">${m.nombre}</div>
+              <div class="text-gray-500 mb-2">${m.puesto}</div>
+              <div class="flex flex-col gap-1 mb-2 w-full">
+                <div class="text-gray-700 text-sm flex items-center"><i class='bi bi-envelope-fill text-cyan-600 mr-2'></i>${m.email}</div>
+                <div class="text-gray-700 text-sm flex items-center"><i class='bi bi-geo-alt-fill text-cyan-600 mr-2'></i>${m.ubicacion}</div>
+              </div>
+              <div class="flex gap-4 mt-2">
+                <a href="${m.linkedin}" target="_blank" class="text-blue-700"><svg class="w-7 h-7" fill="currentColor" viewBox="0 0 24 24"><path d="M19 0h-14c-2.761 0-5 2.239-5 5v14c0 2.761 2.239 5 5 5h14c2.761 0 5-2.239 5-5v-14c0-2.761-2.239-5-5-5zm-11 19h-3v-10h3v10zm-1.5-11.268c-.966 0-1.75-.784-1.75-1.75s.784-1.75 1.75-1.75 1.75.784 1.75 1.75-.784 1.75-1.75 1.75zm13.5 11.268h-3v-5.604c0-1.337-.025-3.063-1.868-3.063-1.868 0-2.154 1.459-2.154 2.968v5.699h-3v-10h2.881v1.367h.041c.401-.761 1.381-1.563 2.841-1.563 3.039 0 3.6 2.001 3.6 4.601v5.595z"/></svg></a>
+                <a href="${m.github}" target="_blank" class="text-gray-800"><svg class="w-7 h-7" fill="currentColor" viewBox="0 0 24 24"><path d="M12 .297c-6.63 0-12 5.373-12 12 0 5.303 3.438 9.8 8.205 11.387.6.113.82-.258.82-.577 0-.285-.01-1.04-.015-2.04-3.338.724-4.042-1.415-4.042-1.415-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.084-.729.084-.729 1.205.084 1.84 1.236 1.84 1.236 1.07 1.834 2.809 1.304 3.495.997.108-.775.418-1.305.762-1.605-2.665-.305-5.466-1.334-5.466-5.931 0-1.31.469-2.381 1.236-3.221-.124-.303-.535-1.523.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.553 3.297-1.23 3.297-1.23.653 1.653.242 2.873.119 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.803 5.624-5.475 5.921.43.371.823 1.102.823 2.222 0 1.606-.014 2.898-.014 3.293 0 .322.216.694.825.576C20.565 22.092 24 17.592 24 12.297c0-6.627-5.373-12-12-12z"/></svg></a>
+              </div>
+            </div>
+          `).join('')}
+        </div>
+      `;
+    }
+
+    // Lógica para mostrar/ocultar el menú de descarga
+    function toggleDescargarDropdown(event) {
+      event.stopPropagation();
+      const dropdown = document.getElementById('descargarDropdown');
+      if (dropdown.style.display === 'none' || dropdown.style.display === '') {
+        dropdown.style.display = 'flex';
+        setTimeout(() => {
+          document.addEventListener('click', closeDescargarDropdownOnClickOutside);
+        }, 0);
+      } else {
+        dropdown.style.display = 'none';
+        document.removeEventListener('click', closeDescargarDropdownOnClickOutside);
+      }
+    }
+    function closeDescargarDropdownOnClickOutside(e) {
+      const wrapper = document.getElementById('descargarDropdownWrapper');
+      if (!wrapper.contains(e.target)) {
+        document.getElementById('descargarDropdown').style.display = 'none';
+        document.removeEventListener('click', closeDescargarDropdownOnClickOutside);
+      }
+    }
   </script>
+
+  <footer class="w-full bg-gray-200 text-center py-4 mt-8 text-gray-600 font-medium">
+    datos obtenidos solo con fines educativos
+  </footer>
   
 </body>
 
