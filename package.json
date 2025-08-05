@@ -5,7 +5,8 @@
   "main": "scrape.js",
   "type": "module",
   "scripts": {
-    "start": "node scrape.js"
+    "start": "node server.js",
+    "postinstall": "puppeteer install"
   },
   "dependencies": {
     "cors": "^2.8.5",
