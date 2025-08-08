@@ -4,6 +4,7 @@ import fs from 'fs';
 import { Parser as Json2csvParser } from 'json2csv';
 import XLSX from 'xlsx';
 import PDFDocument from 'pdfkit';
+import { execSync } from 'child_process';
 
 const rl = readline.createInterface({
   input: process.stdin,
@@ -15,6 +16,37 @@ function askQuestion(query) {
 }
 
 const OCC_URL = 'https://www.occ.com.mx/';
+
+// Función para verificar si Chrome está disponible en una ruta
+function checkChromePath(path) {
+  try {
+    execSync(`${path} --version`, { stdio: 'pipe' });
+    return true;
+  } catch (error) {
+    return false;
+  }
+}
+
+// Función para encontrar Chrome en el sistema
+function findChrome() {
+  const possiblePaths = [
+    '/usr/bin/chromium-browser',  // Primera opción: Chromium
+    '/usr/bin/google-chrome-stable', // Segunda opción: Chrome
+    '/usr/bin/chrome',
+    '/usr/bin/google-chrome',
+    '/snap/bin/chromium',
+    '/usr/bin/chromium'
+  ];
+  
+  for (const path of possiblePaths) {
+    if (checkChromePath(path)) {
+      console.log(`✅ Navegador encontrado en: ${path}`);
+      return path;
+    }
+  }
+  
+  return null;
+}
 
 export async function scrapeOCC(searchTerm) {
   let browser;
@@ -38,18 +70,29 @@ export async function scrapeOCC(searchTerm) {
     console.log('- CHROME_BIN:', process.env.CHROME_BIN);
     console.log('- NODE_ENV:', process.env.NODE_ENV);
     
-    // Estrategia 1: Intentar con Chrome instalado en Render
+    // Estrategia 1: Intentar con navegador instalado en Render
     if (process.env.NODE_ENV === 'production') {
-      try {
-        console.log('🔧 Intentando con Chrome instalado en Render...');
-        browser = await puppeteer.launch({
-          headless: true,
-          executablePath: '/usr/bin/google-chrome-stable',
-          args: baseArgs
-        });
-        console.log('✅ Puppeteer iniciado con Chrome instalado');
-      } catch (chromeError) {
-        console.log('⚠️ Chrome instalado no funcionó, intentando con Chrome incluido...');
+      const chromePath = findChrome();
+      
+      if (chromePath) {
+        try {
+          console.log(`🔧 Intentando con navegador instalado en: ${chromePath}`);
+          browser = await puppeteer.launch({
+            headless: true,
+            executablePath: chromePath,
+            args: baseArgs
+          });
+          console.log('✅ Puppeteer iniciado con navegador instalado');
+        } catch (chromeError) {
+          console.log('⚠️ Navegador instalado no funcionó, intentando con Chrome incluido...');
+          browser = await puppeteer.launch({
+            headless: true,
+            args: baseArgs
+          });
+          console.log('✅ Puppeteer iniciado con Chrome incluido');
+        }
+      } else {
+        console.log('⚠️ Navegador no encontrado, usando Chrome incluido con Puppeteer...');
         browser = await puppeteer.launch({
           headless: true,
           args: baseArgs
