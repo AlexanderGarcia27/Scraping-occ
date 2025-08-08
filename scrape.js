@@ -141,7 +141,18 @@ export async function scrapeOCC(searchTerm) {
         });
         console.log('✅ Puppeteer iniciado con configuración mínima');
       } catch (thirdError) {
-        throw new Error(`❌ No se pudo iniciar el navegador después de 4 intentos. Último error: ${thirdError.message}`);
+        console.error('❌ Error con configuración mínima:', thirdError);
+        
+        // Estrategia 5: Último recurso - usar Chrome incluido sin configuración específica
+        try {
+          console.log('🔄 Último intento: Chrome incluido sin configuración...');
+          browser = await puppeteer.launch({
+            headless: true
+          });
+          console.log('✅ Puppeteer iniciado con Chrome incluido (sin configuración)');
+        } catch (fourthError) {
+          throw new Error(`❌ No se pudo iniciar el navegador después de 5 intentos. Último error: ${fourthError.message}`);
+        }
       }
     }
   }
