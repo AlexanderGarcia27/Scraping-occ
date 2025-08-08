@@ -19,26 +19,17 @@ const OCC_URL = 'https://www.occ.com.mx/';
 export async function scrapeOCC(searchTerm) {
   let browser;
   
-  // Configuración optimizada para Render
-  const launchOptions = {
-    headless: true,
-    args: [
-      '--no-sandbox',
-      '--disable-setuid-sandbox',
-      '--disable-dev-shm-usage',
-      '--disable-gpu',
-      '--no-first-run',
-      '--no-zygote',
-      '--single-process',
-      '--disable-blink-features=AutomationControlled'
-    ]
-  };
-
-  // Si estamos en producción (Render), usar Chrome instalado
-  if (process.env.NODE_ENV === 'production') {
-    launchOptions.executablePath = '/usr/bin/google-chrome-stable';
-    console.log('🔧 Usando Chrome instalado en Render');
-  }
+  // Configuración base para Puppeteer
+  const baseArgs = [
+    '--no-sandbox',
+    '--disable-setuid-sandbox',
+    '--disable-dev-shm-usage',
+    '--disable-gpu',
+    '--no-first-run',
+    '--no-zygote',
+    '--single-process',
+    '--disable-blink-features=AutomationControlled'
+  ];
 
   try {
     console.log('🚀 Iniciando Puppeteer...');
@@ -47,17 +38,41 @@ export async function scrapeOCC(searchTerm) {
     console.log('- CHROME_BIN:', process.env.CHROME_BIN);
     console.log('- NODE_ENV:', process.env.NODE_ENV);
     
-    browser = await puppeteer.launch(launchOptions);
-    console.log('✅ Puppeteer iniciado correctamente');
+    // Estrategia 1: Intentar con Chrome instalado en Render
+    if (process.env.NODE_ENV === 'production') {
+      try {
+        console.log('🔧 Intentando con Chrome instalado en Render...');
+        browser = await puppeteer.launch({
+          headless: true,
+          executablePath: '/usr/bin/google-chrome-stable',
+          args: baseArgs
+        });
+        console.log('✅ Puppeteer iniciado con Chrome instalado');
+      } catch (chromeError) {
+        console.log('⚠️ Chrome instalado no funcionó, intentando con Chrome incluido...');
+        browser = await puppeteer.launch({
+          headless: true,
+          args: baseArgs
+        });
+        console.log('✅ Puppeteer iniciado con Chrome incluido');
+      }
+    } else {
+      // Estrategia 2: Usar Chrome incluido con Puppeteer
+      browser = await puppeteer.launch({
+        headless: true,
+        args: baseArgs
+      });
+      console.log('✅ Puppeteer iniciado con Chrome incluido');
+    }
+    
   } catch (error) {
     console.error('❌ Error al lanzar Puppeteer:', error);
     
-    // Intentar con configuración alternativa
+    // Estrategia 3: Intentar con configuración alternativa
     try {
       console.log('🔄 Intentando con configuración alternativa...');
       browser = await puppeteer.launch({
         headless: true,
-        executablePath: '/usr/bin/google-chrome-stable',
         args: [
           '--no-sandbox',
           '--disable-setuid-sandbox',
@@ -70,7 +85,7 @@ export async function scrapeOCC(searchTerm) {
     } catch (secondError) {
       console.error('❌ Error con configuración alternativa:', secondError);
       
-      // Último intento con configuración mínima
+      // Estrategia 4: Último intento con configuración mínima
       try {
         console.log('🔄 Intentando con configuración mínima...');
         browser = await puppeteer.launch({
@@ -83,7 +98,7 @@ export async function scrapeOCC(searchTerm) {
         });
         console.log('✅ Puppeteer iniciado con configuración mínima');
       } catch (thirdError) {
-        throw new Error(`❌ No se pudo iniciar el navegador después de 3 intentos. Último error: ${thirdError.message}`);
+        throw new Error(`❌ No se pudo iniciar el navegador después de 4 intentos. Último error: ${thirdError.message}`);
       }
     }
   }

@@ -22,6 +22,15 @@ services:
       # Verificar que Chrome se instaló correctamente
       google-chrome-stable --version
       
+      # Crear enlaces simbólicos
+      ln -sf /usr/bin/google-chrome-stable /usr/bin/chromium-browser
+      ln -sf /usr/bin/google-chrome-stable /usr/bin/chrome
+      
+      # Verificar que los enlaces funcionan
+      ls -la /usr/bin/google-chrome*
+      ls -la /usr/bin/chromium-browser
+      ls -la /usr/bin/chrome
+      
       # Instalar dependencias de Node.js
       npm install
     startCommand: npm start
