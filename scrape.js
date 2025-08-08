@@ -17,16 +17,85 @@ function askQuestion(query) {
 const OCC_URL = 'https://www.occ.com.mx/';
 
 export async function scrapeOCC(searchTerm) {
-  const browser = await puppeteer.launch({
+  // Configuración para diferentes entornos
+  const isProduction = process.env.NODE_ENV === 'production';
+  
+  const launchOptions = {
     headless: true,
     args: [
-      '--start-maximized',
       '--no-sandbox',
       '--disable-setuid-sandbox',
-      '--disable-blink-features=AutomationControlled'
+      '--disable-dev-shm-usage',
+      '--disable-accelerated-2d-canvas',
+      '--no-first-run',
+      '--no-zygote',
+      '--single-process',
+      '--disable-gpu',
+      '--disable-blink-features=AutomationControlled',
+      '--disable-web-security',
+      '--disable-features=VizDisplayCompositor',
+      '--disable-background-timer-throttling',
+      '--disable-backgrounding-occluded-windows',
+      '--disable-renderer-backgrounding',
+      '--disable-field-trial-config',
+      '--disable-ipc-flooding-protection'
     ],
     defaultViewport: null
-  });
+  };
+
+  // Si estamos en producción (Render.com), usar Chromium instalado
+  if (isProduction) {
+    const chromiumPath = process.env.PUPPETEER_EXECUTABLE_PATH || '/usr/bin/chromium-browser';
+    launchOptions.executablePath = chromiumPath;
+    console.log(`Usando Chromium en: ${chromiumPath}`);
+  } else {
+    console.log('Ejecutando en modo local - usando Chrome incluido con Puppeteer');
+  }
+
+  let browser;
+  try {
+    browser = await puppeteer.launch(launchOptions);
+  } catch (error) {
+    console.error('Error al lanzar Puppeteer:', error);
+    
+    // Si falla en local, intentar con configuración alternativa
+    if (!isProduction) {
+      console.log('Intentando con configuración alternativa para local...');
+      try {
+        browser = await puppeteer.launch({
+          headless: true,
+          args: [
+            '--no-sandbox',
+            '--disable-setuid-sandbox',
+            '--disable-dev-shm-usage'
+          ]
+        });
+      } catch (secondError) {
+        throw new Error(`No se pudo iniciar el navegador. Asegúrate de tener Chrome instalado o ejecuta: npx puppeteer browsers install chrome. Error: ${secondError.message}`);
+      }
+    } else {
+      // En producción, intentar con configuración alternativa
+      console.log('Intentando con configuración alternativa para producción...');
+      try {
+        browser = await puppeteer.launch({
+          headless: true,
+          executablePath: '/usr/bin/chromium-browser',
+          args: [
+            '--no-sandbox',
+            '--disable-setuid-sandbox',
+            '--disable-dev-shm-usage',
+            '--disable-gpu',
+            '--no-first-run',
+            '--no-zygote',
+            '--single-process'
+          ]
+        });
+      } catch (secondError) {
+        throw new Error(`No se pudo iniciar el navegador en producción. Error: ${secondError.message}`);
+      }
+    }
+  }
+
   const page = await browser.newPage();
   await page.setUserAgent('Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36');
   await page.goto(OCC_URL, { waitUntil: 'domcontentloaded' });
