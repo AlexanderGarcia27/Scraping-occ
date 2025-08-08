@@ -1,0 +1,59 @@
+{
+  "version": 2,
+  "builds": [
+    {
+      "src": "server.js",
+      "use": "@vercel/node"
+    }
+  ],
+  "routes": [
+    {
+      "src": "/api/(.*)",
+      "dest": "/server.js"
+    },
+    {
+      "src": "/search",
+      "dest": "/server.js"
+    },
+    {
+      "src": "/status",
+      "dest": "/server.js"
+    },
+    {
+      "src": "/resultados.json",
+      "dest": "/server.js"
+    },
+    {
+      "src": "/resultados.csv",
+      "dest": "/server.js"
+    },
+    {
+      "src": "/resultados.xlsx",
+      "dest": "/server.js"
+    },
+    {
+      "src": "/resultados.pdf",
+      "dest": "/server.js"
+    },
+    {
+      "src": "/index.html",
+      "dest": "/server.js"
+    },
+    {
+      "src": "/vacantes.html",
+      "dest": "/server.js"
+    },
+    {
+      "src": "/(.*)",
+      "dest": "/server.js"
+    }
+  ],
+  "functions": {
+    "server.js": {
+      "maxDuration": 300
+    }
+  },
+  "env": {
+    "NODE_ENV": "production"
+  }
+}

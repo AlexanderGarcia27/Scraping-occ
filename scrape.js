@@ -4,7 +4,6 @@ import fs from 'fs';
 import { Parser as Json2csvParser } from 'json2csv';
 import XLSX from 'xlsx';
 import PDFDocument from 'pdfkit';
-import { launchPuppeteerInRender } from './render-puppeteer.js';
 
 const rl = readline.createInterface({
   input: process.stdin,
@@ -20,12 +19,42 @@ const OCC_URL = 'https://www.occ.com.mx/';
 export async function scrapeOCC(searchTerm) {
   let browser;
   
+  // Configuración optimizada para Vercel
+  const launchOptions = {
+    headless: true,
+    args: [
+      '--no-sandbox',
+      '--disable-setuid-sandbox',
+      '--disable-dev-shm-usage',
+      '--disable-gpu',
+      '--no-first-run',
+      '--no-zygote',
+      '--single-process',
+      '--disable-blink-features=AutomationControlled'
+    ]
+  };
+
   try {
-    console.log('Iniciando Puppeteer...');
-    browser = await launchPuppeteerInRender();
+    console.log('Iniciando Puppeteer en Vercel...');
+    browser = await puppeteer.launch(launchOptions);
     console.log('Puppeteer iniciado correctamente');
   } catch (error) {
-    throw new Error(`No se pudo iniciar el navegador: ${error.message}`);
+    console.error('Error al lanzar Puppeteer:', error);
+    
+    // Intentar con configuración alternativa
+    try {
+      console.log('Intentando con configuración alternativa...');
+      browser = await puppeteer.launch({
+        headless: true,
+        args: [
+          '--no-sandbox',
+          '--disable-setuid-sandbox',
+          '--disable-dev-shm-usage'
+        ]
+      });
+    } catch (secondError) {
+      throw new Error(`No se pudo iniciar el navegador: ${secondError.message}`);
+    }
   }
 
   const page = await browser.newPage();
