@@ -2,22 +2,22 @@
   "version": 2,
   "builds": [
     {
-      "src": "web-interface/**/*",
+      "src": "**/*",
       "use": "@vercel/static"
     }
   ],
   "routes": [
     {
       "src": "/",
-      "dest": "/web-interface/index.html"
+      "dest": "/index.html"
     },
     {
       "src": "/vacantes",
-      "dest": "/web-interface/vacantes.html"
+      "dest": "/vacantes.html"
     },
     {
       "src": "/(.*)",
-      "dest": "/web-interface/$1"
+      "dest": "/$1"
     }
   ]
 }

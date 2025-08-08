@@ -15,12 +15,12 @@ app.use(express.json());
 // Endpoint principal
 app.get('/', (req, res) => {
   res.json({ 
-    message: 'Scraper de OCC funcionando en Vercel',
+    message: 'Scraper de OCC funcionando en Render',
+    environment: process.env.NODE_ENV || 'development',
     endpoints: {
       search: 'POST /search',
       status: 'GET /status',
-      frontend: 'GET /index.html',
-      vacantes: 'GET /vacantes.html'
+      resultados: 'GET /resultados.json'
     }
   });
 });
@@ -107,35 +107,19 @@ app.get('/resultados.pdf', (req, res) => {
   }
 });
 
-// Servir archivos estáticos del frontend
-app.use(express.static(path.join(__dirname, 'web-interface')));
-
-// Ruta para servir el index.html
-app.get('/index.html', (req, res) => {
-  res.sendFile(path.join(__dirname, 'web-interface', 'index.html'));
-});
-
-// Ruta para servir vacantes.html
-app.get('/vacantes.html', (req, res) => {
-  res.sendFile(path.join(__dirname, 'web-interface', 'vacantes.html'));
-});
-
 // Manejo de errores global
 app.use((error, req, res, next) => {
   console.error('Error no manejado:', error);
   res.status(500).json({ 
     success: false, 
-    error: 'Error interno del servidor' 
+    error: 'Error interno del servidor'
   });
 });
 
 const PORT = process.env.PORT || 3000;
 
-// Solo iniciar el servidor si no estamos en Vercel
-if (process.env.NODE_ENV !== 'production' || process.env.VERCEL !== '1') {
-  app.listen(PORT, () => {
-    console.log(`Servidor escuchando en puerto ${PORT}`);
-  });
-}
+app.listen(PORT, () => {
+  console.log(`Servidor escuchando en puerto ${PORT}`);
+});
 
 export default app;

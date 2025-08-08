@@ -1,169 +1,155 @@
-# Scraper de OCC - Vercel Deployment
+# Scraper de OCC - Arquitectura Separada
 
-Este es un scraper de vacantes de OCC.com.mx que funciona completamente en Vercel (frontend + backend).
+Este es un scraper de vacantes de OCC.com.mx con una arquitectura separada:
+- **Backend**: Render.com (con Puppeteer para scraping real)
+- **Frontend**: Vercel.com (interfaz de usuario)
 
-## 🚀 Despliegue en Vercel
+## 🏗️ Arquitectura
 
-### 1. Preparación
+### Backend (Render.com)
+- **URL**: `https://scraping-occ.onrender.com`
+- **Tecnología**: Node.js + Express + Puppeteer
+- **Funcionalidad**: Scraping real de OCC.com.mx
+- **Archivos**: `server.js`, `scrape.js`, `package.json`, `render.yaml`
 
-1. **Asegúrate de tener todos los archivos**:
-   - `server.js` - Servidor principal (backend + frontend)
+### Frontend (Vercel.com)
+- **URL**: `https://scraping-occ.vercel.app`
+- **Tecnología**: HTML + CSS + JavaScript
+- **Funcionalidad**: Interfaz de usuario
+- **Archivos**: `web-interface/`
+
+## 🚀 Despliegue
+
+### 1. Backend en Render
+
+#### Preparación
+1. **Asegúrate de tener todos los archivos del backend**:
+   - `server.js` - Servidor principal
    - `scrape.js` - Lógica del scraper
    - `package.json` - Dependencias
+   - `render.yaml` - Configuración de Render
+
+#### Despliegue en Render
+1. Ve a [render.com](https://render.com)
+2. Conecta tu repositorio de GitHub
+3. Crea un nuevo **Web Service**
+4. Render detectará automáticamente la configuración
+5. Configura las variables de entorno:
+   - `NODE_ENV`: `production`
+   - `PUPPETEER_SKIP_CHROMIUM_DOWNLOAD`: `true`
+   - `PUPPETEER_EXECUTABLE_PATH`: `/usr/bin/google-chrome-stable`
+   - `CHROME_BIN`: `/usr/bin/google-chrome-stable`
+
+### 2. Frontend en Vercel
+
+#### Preparación
+1. **Asegúrate de tener todos los archivos del frontend**:
+   - `web-interface/index.html` - Página principal
+   - `web-interface/vacantes.html` - Vista de vacantes
    - `vercel.json` - Configuración de Vercel
-   - `web-interface/` - Archivos del frontend
 
-### 2. Despliegue
-
-#### Opción A: Usando Vercel CLI
-```bash
-# Login a Vercel
-vercel login
-
-# Desplegar
-vercel
-
-# Para producción
-vercel --prod
-```
-
-#### Opción B: Usando GitHub
-1. Sube tu código a GitHub
-2. Ve a [vercel.com](https://vercel.com)
-3. Conecta tu repositorio de GitHub
-4. Vercel detectará automáticamente la configuración
-
-### 3. URLs
-
-Una vez desplegado, tendrás acceso a:
-- **Frontend**: `https://tu-app.vercel.app/` o `https://tu-app.vercel.app/index.html`
-- **Vacantes**: `https://tu-app.vercel.app/vacantes.html`
-- **API**: `https://tu-app.vercel.app/search` (POST)
-
-### 4. Endpoints
-
-- `GET /` - Información del API
-- `GET /status` - Estado del servidor
-- `POST /search` - Buscar vacantes
-- `GET /index.html` - Interfaz principal
-- `GET /vacantes.html` - Vista de vacantes
-- `GET /resultados.json` - Descargar JSON
-- `GET /resultados.csv` - Descargar CSV
-- `GET /resultados.xlsx` - Descargar Excel
-- `GET /resultados.pdf` - Descargar PDF
-
-### 5. Uso del API
-
-```javascript
-// Ejemplo de uso
-const response = await fetch('https://tu-app.vercel.app/search', {
-  method: 'POST',
-  headers: {
-    'Content-Type': 'application/json'
-  },
-  body: JSON.stringify({
-    searchTerm: 'desarrollador'
-  })
-});
-
-const data = await response.json();
-console.log(data);
-```
+#### Despliegue en Vercel
+1. Ve a [vercel.com](https://vercel.com)
+2. Conecta tu repositorio de GitHub
+3. Vercel detectará automáticamente la configuración
+4. Configura la variable de entorno:
+   - `BACKEND_URL`: `https://scraping-occ.onrender.com`
 
 ## 🔧 Configuración
 
-### vercel.json
+### render.yaml (Backend)
+```yaml
+services:
+  - type: web
+    name: scrapin-occ
+    env: node
+    buildCommand: |
+      apt-get update && apt-get install -y wget gnupg ca-certificates
+      wget -q -O - https://dl-ssl.google.com/linux/linux_signing_key.pub | apt-key add -
+      echo "deb [arch=amd64] http://dl.google.com/linux/chrome/deb/ stable main" > /etc/apt/sources.list.d/google-chrome.list
+      apt-get update && apt-get install -y google-chrome-stable
+      npm install
+    startCommand: npm start
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PUPPETEER_SKIP_CHROMIUM_DOWNLOAD
+        value: "true"
+      - key: PUPPETEER_EXECUTABLE_PATH
+        value: "/usr/bin/google-chrome-stable"
+      - key: CHROME_BIN
+        value: "/usr/bin/google-chrome-stable"
+```
+
+### vercel.json (Frontend)
 ```json
 {
   "version": 2,
   "builds": [
     {
-      "src": "server.js",
-      "use": "@vercel/node"
+      "src": "web-interface/**/*",
+      "use": "@vercel/static"
     }
   ],
   "routes": [
     {
-      "src": "/api/(.*)",
-      "dest": "/server.js"
+      "src": "/",
+      "dest": "/web-interface/index.html"
     },
     {
-      "src": "/search",
-      "dest": "/server.js"
-    },
-    {
-      "src": "/status",
-      "dest": "/server.js"
-    },
-    {
-      "src": "/resultados.json",
-      "dest": "/server.js"
-    },
-    {
-      "src": "/resultados.csv",
-      "dest": "/server.js"
-    },
-    {
-      "src": "/resultados.xlsx",
-      "dest": "/server.js"
-    },
-    {
-      "src": "/resultados.pdf",
-      "dest": "/server.js"
-    },
-    {
-      "src": "/index.html",
-      "dest": "/server.js"
-    },
-    {
-      "src": "/vacantes.html",
-      "dest": "/server.js"
+      "src": "/vacantes",
+      "dest": "/web-interface/vacantes.html"
     },
     {
       "src": "/(.*)",
-      "dest": "/server.js"
+      "dest": "/web-interface/$1"
     }
-  ],
-  "functions": {
-    "server.js": {
-      "maxDuration": 300
-    }
-  }
+  ]
 }
 ```
 
-## 📝 Notas
+## 📝 Endpoints del Backend
 
-- **Todo en Vercel**: Frontend y backend están en la misma URL
-- **Mejor rendimiento**: Vercel tiene mejor soporte para Puppeteer
-- **Tiempo límite**: 300 segundos máximo por request
-- **Archivos temporales**: Los archivos generados se guardan temporalmente
-- **Escalabilidad**: Vercel maneja automáticamente la escalabilidad
+- `GET /` - Información del API
+- `GET /status` - Estado del servidor
+- `POST /search` - Buscar vacantes
+- `GET /resultados.json` - Descargar JSON
+- `GET /resultados.csv` - Descargar CSV
+- `GET /resultados.xlsx` - Descargar Excel
+- `GET /resultados.pdf` - Descargar PDF
+
+## 🔄 Flujo de Trabajo
+
+1. **Usuario accede al frontend** en Vercel
+2. **Usuario busca vacantes** en la interfaz
+3. **Frontend envía request** al backend en Render
+4. **Backend ejecuta scraping** con Puppeteer
+5. **Backend devuelve resultados** al frontend
+6. **Frontend muestra resultados** al usuario
 
 ## 🐛 Solución de Problemas
 
-### Error de Puppeteer
-Si ves errores de Puppeteer:
-1. Verifica que `puppeteer` esté en las dependencias
-2. Revisa los logs en Vercel Dashboard
-3. Asegúrate de que la configuración en `scrape.js` sea correcta
+### Backend (Render)
+- **Error de Puppeteer**: Verifica que Chrome esté instalado
+- **Timeout**: Aumenta el timeout en Render Dashboard
+- **Memoria**: Aumenta la memoria en Render Dashboard
 
-### Timeout
-Si el scraping toma más de 300 segundos:
-1. Reduce el número de páginas a scrapear
-2. Optimiza el código para ser más rápido
-3. Considera usar un servicio de background jobs
+### Frontend (Vercel)
+- **Error de conexión**: Verifica la URL del backend
+- **CORS**: Asegúrate de que el backend permita CORS
+- **Archivos no encontrados**: Verifica las rutas en vercel.json
 
-### Archivos no encontrados
-Si los archivos generados no se encuentran:
-1. Verifica que el scraping se completó correctamente
-2. Revisa los logs en Vercel Dashboard
-3. Asegúrate de que las rutas estén configuradas correctamente
+## 🎯 Ventajas de esta Arquitectura
 
-## 🎯 Ventajas de Vercel
+- **Escalabilidad**: Backend y frontend escalan independientemente
+- **Rendimiento**: Frontend rápido en Vercel, backend potente en Render
+- **Mantenimiento**: Separación clara de responsabilidades
+- **Costos**: Optimización de recursos por servicio
 
-- **Despliegue automático**: Cada push a GitHub se despliega automáticamente
-- **CDN global**: Contenido servido desde múltiples ubicaciones
-- **SSL automático**: Certificados HTTPS incluidos
-- **Monitoreo**: Logs y métricas incluidos
-- **Escalabilidad**: Manejo automático de tráfico
+## 📞 Soporte
+
+Si tienes problemas:
+1. Revisa los logs en Render Dashboard (backend)
+2. Revisa los logs en Vercel Dashboard (frontend)
+3. Verifica que las URLs estén correctas
+4. Asegúrate de que las variables de entorno estén configuradas

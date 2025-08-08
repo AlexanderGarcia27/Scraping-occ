@@ -19,7 +19,7 @@ const OCC_URL = 'https://www.occ.com.mx/';
 export async function scrapeOCC(searchTerm) {
   let browser;
   
-  // Configuración optimizada para Vercel
+  // Configuración optimizada para Render
   const launchOptions = {
     headless: true,
     args: [
@@ -35,7 +35,7 @@ export async function scrapeOCC(searchTerm) {
   };
 
   try {
-    console.log('Iniciando Puppeteer en Vercel...');
+    console.log('Iniciando Puppeteer...');
     browser = await puppeteer.launch(launchOptions);
     console.log('Puppeteer iniciado correctamente');
   } catch (error) {
