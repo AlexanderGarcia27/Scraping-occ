@@ -78,7 +78,7 @@ export async function scrapeOCC(searchTerm) {
         try {
           console.log(`🔧 Intentando con navegador instalado en: ${chromePath}`);
           browser = await puppeteer.launch({
-            headless: true,
+            headless: "new",
             executablePath: chromePath,
             args: baseArgs
           });
@@ -86,7 +86,7 @@ export async function scrapeOCC(searchTerm) {
         } catch (chromeError) {
           console.log('⚠️ Navegador instalado no funcionó, intentando con Chrome incluido...');
           browser = await puppeteer.launch({
-            headless: true,
+            headless: "new",
             args: baseArgs
           });
           console.log('✅ Puppeteer iniciado con Chrome incluido');
@@ -94,7 +94,7 @@ export async function scrapeOCC(searchTerm) {
       } else {
         console.log('⚠️ Navegador no encontrado, usando Chrome incluido con Puppeteer...');
         browser = await puppeteer.launch({
-          headless: true,
+          headless: "new",
           args: baseArgs
         });
         console.log('✅ Puppeteer iniciado con Chrome incluido');
@@ -102,7 +102,7 @@ export async function scrapeOCC(searchTerm) {
     } else {
       // Estrategia 2: Usar Chrome incluido con Puppeteer
       browser = await puppeteer.launch({
-        headless: true,
+        headless: "new",
         args: baseArgs
       });
       console.log('✅ Puppeteer iniciado con Chrome incluido');
@@ -115,7 +115,7 @@ export async function scrapeOCC(searchTerm) {
     try {
       console.log('🔄 Intentando con configuración alternativa...');
       browser = await puppeteer.launch({
-        headless: true,
+        headless: "new",
         args: [
           '--no-sandbox',
           '--disable-setuid-sandbox',
@@ -132,7 +132,7 @@ export async function scrapeOCC(searchTerm) {
       try {
         console.log('🔄 Intentando con configuración mínima...');
         browser = await puppeteer.launch({
-          headless: true,
+          headless: "new",
           args: [
             '--no-sandbox',
             '--disable-setuid-sandbox',
@@ -147,7 +147,7 @@ export async function scrapeOCC(searchTerm) {
         try {
           console.log('🔄 Último intento: Chrome incluido sin configuración...');
           browser = await puppeteer.launch({
-            headless: true
+            headless: "new"
           });
           console.log('✅ Puppeteer iniciado con Chrome incluido (sin configuración)');
         } catch (fourthError) {
