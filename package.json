@@ -7,7 +7,8 @@
   "scripts": {
     "start": "node server.js",
     "dev": "node server.js",
-    "build": "echo 'No build step required'"
+    "build": "echo 'No build step required'",
+    "postinstall": "node -e \"console.log('✅ Dependencias instaladas correctamente')\""
   },
   "dependencies": {
     "cors": "^2.8.5",

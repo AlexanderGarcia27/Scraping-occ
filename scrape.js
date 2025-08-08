@@ -34,26 +34,57 @@ export async function scrapeOCC(searchTerm) {
     ]
   };
 
+  // Si estamos en producción (Render), usar Chrome instalado
+  if (process.env.NODE_ENV === 'production') {
+    launchOptions.executablePath = '/usr/bin/google-chrome-stable';
+    console.log('🔧 Usando Chrome instalado en Render');
+  }
+
   try {
-    console.log('Iniciando Puppeteer...');
+    console.log('🚀 Iniciando Puppeteer...');
+    console.log('📊 Variables de entorno:');
+    console.log('- PUPPETEER_EXECUTABLE_PATH:', process.env.PUPPETEER_EXECUTABLE_PATH);
+    console.log('- CHROME_BIN:', process.env.CHROME_BIN);
+    console.log('- NODE_ENV:', process.env.NODE_ENV);
+    
     browser = await puppeteer.launch(launchOptions);
-    console.log('Puppeteer iniciado correctamente');
+    console.log('✅ Puppeteer iniciado correctamente');
   } catch (error) {
-    console.error('Error al lanzar Puppeteer:', error);
+    console.error('❌ Error al lanzar Puppeteer:', error);
     
     // Intentar con configuración alternativa
     try {
-      console.log('Intentando con configuración alternativa...');
+      console.log('🔄 Intentando con configuración alternativa...');
       browser = await puppeteer.launch({
         headless: true,
+        executablePath: '/usr/bin/google-chrome-stable',
         args: [
           '--no-sandbox',
           '--disable-setuid-sandbox',
-          '--disable-dev-shm-usage'
+          '--disable-dev-shm-usage',
+          '--disable-gpu',
+          '--no-first-run'
         ]
       });
+      console.log('✅ Puppeteer iniciado con configuración alternativa');
     } catch (secondError) {
-      throw new Error(`No se pudo iniciar el navegador: ${secondError.message}`);
+      console.error('❌ Error con configuración alternativa:', secondError);
+      
+      // Último intento con configuración mínima
+      try {
+        console.log('🔄 Intentando con configuración mínima...');
+        browser = await puppeteer.launch({
+          headless: true,
+          args: [
+            '--no-sandbox',
+            '--disable-setuid-sandbox',
+            '--disable-dev-shm-usage'
+          ]
+        });
+        console.log('✅ Puppeteer iniciado con configuración mínima');
+      } catch (thirdError) {
+        throw new Error(`❌ No se pudo iniciar el navegador después de 3 intentos. Último error: ${thirdError.message}`);
+      }
     }
   }
 
