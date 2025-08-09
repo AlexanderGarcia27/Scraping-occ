@@ -50,111 +50,30 @@ function findChrome() {
 
 export async function scrapeOCC(searchTerm) {
   let browser;
-  
-  // Configuración base para Puppeteer
-  const baseArgs = [
-    '--no-sandbox',
-    '--disable-setuid-sandbox',
-    '--disable-dev-shm-usage',
-    '--disable-gpu',
-    '--no-first-run',
-    '--no-zygote',
-    '--single-process',
-    '--disable-blink-features=AutomationControlled'
-  ];
 
   try {
     console.log('🚀 Iniciando Puppeteer...');
     console.log('📊 Variables de entorno:');
-    console.log('- PUPPETEER_EXECUTABLE_PATH:', process.env.PUPPETEER_EXECUTABLE_PATH);
-    console.log('- CHROME_BIN:', process.env.CHROME_BIN);
     console.log('- NODE_ENV:', process.env.NODE_ENV);
     
-    // Estrategia 1: Intentar con navegador instalado en Render
-    if (process.env.NODE_ENV === 'production') {
-      const chromePath = findChrome();
-      
-      if (chromePath) {
-        try {
-          console.log(`🔧 Intentando con navegador instalado en: ${chromePath}`);
-          browser = await puppeteer.launch({
-            headless: "new",
-            executablePath: chromePath,
-            args: baseArgs
-          });
-          console.log('✅ Puppeteer iniciado con navegador instalado');
-        } catch (chromeError) {
-          console.log('⚠️ Navegador instalado no funcionó, intentando con Chrome incluido...');
-          browser = await puppeteer.launch({
-            headless: "new",
-            args: baseArgs
-          });
-          console.log('✅ Puppeteer iniciado con Chrome incluido');
-        }
-      } else {
-        console.log('⚠️ Navegador no encontrado, usando Chrome incluido con Puppeteer...');
-        browser = await puppeteer.launch({
-          headless: "new",
-          args: baseArgs
-        });
-        console.log('✅ Puppeteer iniciado con Chrome incluido');
-      }
-    } else {
-      // Estrategia 2: Usar Chrome incluido con Puppeteer
-      browser = await puppeteer.launch({
-        headless: "new",
-        args: baseArgs
-      });
-      console.log('✅ Puppeteer iniciado con Chrome incluido');
-    }
-    
+    // SOLUCIÓN SIMPLE: Usar Puppeteer con Chrome incluido
+    browser = await puppeteer.launch({
+      headless: "new",
+      args: [
+        '--no-sandbox',
+        '--disable-setuid-sandbox',
+        '--disable-dev-shm-usage',
+        '--disable-gpu',
+        '--no-first-run',
+        '--no-zygote',
+        '--single-process'
+      ]
+    });
+    console.log('✅ Puppeteer iniciado correctamente');
+
   } catch (error) {
     console.error('❌ Error al lanzar Puppeteer:', error);
-    
-    // Estrategia 3: Intentar con configuración alternativa
-    try {
-      console.log('🔄 Intentando con configuración alternativa...');
-      browser = await puppeteer.launch({
-        headless: "new",
-        args: [
-          '--no-sandbox',
-          '--disable-setuid-sandbox',
-          '--disable-dev-shm-usage',
-          '--disable-gpu',
-          '--no-first-run'
-        ]
-      });
-      console.log('✅ Puppeteer iniciado con configuración alternativa');
-    } catch (secondError) {
-      console.error('❌ Error con configuración alternativa:', secondError);
-      
-      // Estrategia 4: Último intento con configuración mínima
-      try {
-        console.log('🔄 Intentando con configuración mínima...');
-        browser = await puppeteer.launch({
-          headless: "new",
-          args: [
-            '--no-sandbox',
-            '--disable-setuid-sandbox',
-            '--disable-dev-shm-usage'
-          ]
-        });
-        console.log('✅ Puppeteer iniciado con configuración mínima');
-      } catch (thirdError) {
-        console.error('❌ Error con configuración mínima:', thirdError);
-        
-        // Estrategia 5: Último recurso - usar Chrome incluido sin configuración específica
-        try {
-          console.log('🔄 Último intento: Chrome incluido sin configuración...');
-          browser = await puppeteer.launch({
-            headless: "new"
-          });
-          console.log('✅ Puppeteer iniciado con Chrome incluido (sin configuración)');
-        } catch (fourthError) {
-          throw new Error(`❌ No se pudo iniciar el navegador después de 5 intentos. Último error: ${fourthError.message}`);
-        }
-      }
-    }
+    throw new Error(`❌ No se pudo iniciar el navegador: ${error.message}`);
   }
 
   const page = await browser.newPage();
