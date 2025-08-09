@@ -63,6 +63,21 @@ app.get('/geocode', async (req, res) => {
     res.status(500).json({ error: 'Error al buscar la ubicación' });
   }
 });
+app.get('/download/:filename', (req, res) => {
+  const { filename } = req.params;
+  const allowedFiles = ['resultados.json', 'resultados.csv', 'resultados.xlsx', 'resultados.pdf'];
+  
+  if (!allowedFiles.includes(filename)) {
+    return res.status(400).json({ error: 'Archivo no permitido' });
+  }
+  
+  const filePath = path.join(__dirname, filename);
+  if (fs.existsSync(filePath)) {
+    res.download(filePath);
+  } else {
+    res.status(404).json({ error: `Archivo ${filename} no encontrado` });
+  }
+});
 
 // Endpoint de estado
 app.get('/status', (req, res) => {
@@ -86,7 +101,7 @@ app.post('/search', async (req, res) => {
 
   try {
     console.log(`Iniciando búsqueda para: ${searchTerm}`);
-    const results = await scrapeOCC(searchTerm);
+    const results = await scrapeOCC(searchTerm, true);
     
     res.json({ 
       success: true, 
@@ -101,6 +116,7 @@ app.post('/search', async (req, res) => {
     });
   }
 });
+
 
 // Servir archivos generados
 app.get('/resultados.json', (req, res) => {

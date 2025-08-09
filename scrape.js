@@ -4,7 +4,6 @@ import fs from 'fs';
 import { Parser as Json2csvParser } from 'json2csv';
 import XLSX from 'xlsx';
 import PDFDocument from 'pdfkit';
-import { execSync } from 'child_process';
 
 const rl = readline.createInterface({
   input: process.stdin,
@@ -17,73 +16,69 @@ function askQuestion(query) {
 
 const OCC_URL = 'https://www.occ.com.mx/';
 
-// Función para verificar si Chrome está disponible en una ruta
-function checkChromePath(path) {
-  try {
-    execSync(`${path} --version`, { stdio: 'pipe' });
-    return true;
-  } catch (error) {
-    return false;
-  }
-}
-
-// Función para encontrar Chrome en el sistema
-function findChrome() {
-  const possiblePaths = [
-    '/usr/bin/chromium-browser',  // Primera opción: Chromium
-    '/usr/bin/google-chrome-stable', // Segunda opción: Chrome
-    '/usr/bin/chrome',
-    '/usr/bin/google-chrome',
-    '/snap/bin/chromium',
-    '/usr/bin/chromium'
-  ];
-  
-  for (const path of possiblePaths) {
-    if (checkChromePath(path)) {
-      console.log(`✅ Navegador encontrado en: ${path}`);
-      return path;
-    }
-  }
-  
-  return null;
-}
-
-export async function scrapeOCC(searchTerm) {
+export async function scrapeOCC(searchTerm, isVercel = false) {
   let browser;
-
-  try {
-    console.log('🚀 Iniciando Puppeteer...');
-    console.log('📊 Variables de entorno:');
-    console.log('- NODE_ENV:', process.env.NODE_ENV);
-    
-    // SOLUCIÓN SIMPLE: Usar Puppeteer con Chrome incluido
+  
+  if (isVercel) {
+    // Configuración especial para Vercel
     browser = await puppeteer.launch({
       headless: "new",
       args: [
         '--no-sandbox',
         '--disable-setuid-sandbox',
         '--disable-dev-shm-usage',
-        '--disable-gpu',
+        '--disable-accelerated-2d-canvas',
         '--no-first-run',
         '--no-zygote',
-        '--single-process'
-      ]
+        '--single-process',
+        '--disable-gpu',
+        '--disable-blink-features=AutomationControlled',
+        '--window-size=1400,900'
+      ],
+      defaultViewport: { width: 1400, height: 900 }
     });
-    console.log('✅ Puppeteer iniciado correctamente');
-
-  } catch (error) {
-    console.error('❌ Error al lanzar Puppeteer:', error);
-    throw new Error(`❌ No se pudo iniciar el navegador: ${error.message}`);
+  } else {
+    // Configuración para desarrollo local
+    browser = await puppeteer.launch({
+      headless: "new",
+      args: [
+        '--no-sandbox',
+        '--disable-setuid-sandbox',
+        '--disable-blink-features=AutomationControlled',
+        '--window-size=1400,900'
+      ],
+      defaultViewport: { width: 1400, height: 900 }
+    });
   }
 
   const page = await browser.newPage();
-  await page.setUserAgent('Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36');
-  await page.goto(OCC_URL, { waitUntil: 'domcontentloaded' });
-  await page.waitForSelector('#prof-cat-search-input-desktop', { timeout: 15000 });
-  await page.type('#prof-cat-search-input-desktop', searchTerm);
+
+  // Poner un User-Agent para que parezca un navegador real
+  await page.setUserAgent(
+    'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 ' +
+    '(KHTML, like Gecko) Chrome/115.0.0.0 Safari/537.36'
+  );
+
+  // Eliminar la variable que delata la automatización
+  await page.evaluateOnNewDocument(() => {
+    Object.defineProperty(navigator, 'webdriver', { get: () => false });
+  });
+
+  await page.goto(OCC_URL, { waitUntil: 'networkidle2' });
+
+  // Este cambio hace que espere el input de búsqueda o el input alternativo
+  await page.waitForSelector('#prof-cat-search-input-desktop, #search-input', { timeout: 20000 });
+
+  // Si existe el input de escritorio, úsalo; si no, el otro
+  if (await page.$('#prof-cat-search-input-desktop') !== null) {
+    await page.type('#prof-cat-search-input-desktop', searchTerm);
+  } else {
+    await page.type('#search-input', searchTerm);
+  }
+
   await Promise.all([
     page.click('button[type="submit"]'),
-    page.waitForSelector('div[id^="jobcard-"]', { timeout: 15000 })
+    page.waitForSelector('div[id^="jobcard-"]', { timeout: 20000 })
   ]);
 
   let results = [];
@@ -91,9 +86,12 @@ export async function scrapeOCC(searchTerm) {
   let pageNum = 1;
 
   while (hasNextPage) {
+    console.log(`📄 Procesando página ${pageNum}...`);
     try {
       await page.waitForSelector('div[id^="jobcard-"]', { timeout: 15000 });
       const jobCards = await page.$$('div[id^="jobcard-"]');
+
+      console.log(`   ➡ ${jobCards.length} vacantes encontradas en esta página.`);
 
       for (let i = 0; i < jobCards.length; i++) {
         const card = jobCards[i];
@@ -174,7 +172,6 @@ export async function scrapeOCC(searchTerm) {
             await page.keyboard.press('Escape');
             await new Promise(res => setTimeout(res, 500));
           } else {
-            console.log(`⚠️ Vacante ${i + 1} no es clickeable (boundingBox vacío).`);
             continue;
           }
         } catch (error) {
@@ -220,7 +217,6 @@ export async function scrapeOCC(searchTerm) {
           hasNextPage = false;
         }
       } else {
-        console.log('❌ No se encontró botón de siguiente.');
         hasNextPage = false;
       }
 
@@ -232,7 +228,7 @@ export async function scrapeOCC(searchTerm) {
 
   await browser.close();
 
-  // Guardar archivos
+  // Guardar JSON
   fs.writeFileSync('resultados.json', JSON.stringify(results, null, 2), 'utf-8');
   console.log(`✅ Se guardaron ${results.length} resultados en resultados.json`);
 
@@ -325,4 +321,4 @@ async function main() {
   }
 }
 
-// main();
+main();
