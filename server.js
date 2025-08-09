@@ -21,7 +21,7 @@ app.use(express.json());
 
 // Endpoint principal
 app.get('/', (req, res) => {
-  res.json({ 
+  res.json({
     message: 'Scraper de OCC funcionando en Render',
     environment: process.env.NODE_ENV || 'development',
     endpoints: {
@@ -37,25 +37,23 @@ app.get('/geocode', async (req, res) => {
   if (!q) {
     return res.status(400).json({ error: 'Falta el parámetro q' });
   }
-  
-  // Tu API key de LocationIQ
+
   const apiKey = process.env.LOCATIONIQ_API_KEY || 'pk.8e189bb0bea1772e515ad047bed32836';
   const url = `https://us1.locationiq.com/v1/search.php?key=${apiKey}&q=${encodeURIComponent(q)}&countrycodes=mx&format=json&limit=1&addressdetails=1`;
-  
+
   try {
-    // Importar fetch dinámicamente
-    const fetch = (await import('node-fetch')).default;
+    // Usar fetch nativo de Node.js 18+ (SIN importar node-fetch)
     const response = await fetch(url, {
       headers: {
         'User-Agent': 'Scrapin-OCC/1.0 (scrapin-occ@render.com)'
       }
     });
-    
+
     if (!response.ok) {
       console.error(`Error en LocationIQ: ${response.status} ${response.statusText}`);
       return res.status(500).json({ error: 'Error al consultar LocationIQ' });
     }
-    
+
     const data = await response.json();
     res.json(data);
   } catch (err) {
@@ -66,11 +64,11 @@ app.get('/geocode', async (req, res) => {
 app.get('/download/:filename', (req, res) => {
   const { filename } = req.params;
   const allowedFiles = ['resultados.json', 'resultados.csv', 'resultados.xlsx', 'resultados.pdf'];
-  
+
   if (!allowedFiles.includes(filename)) {
     return res.status(400).json({ error: 'Archivo no permitido' });
   }
-  
+
   const filePath = path.join(__dirname, filename);
   if (fs.existsSync(filePath)) {
     res.download(filePath);
@@ -81,8 +79,8 @@ app.get('/download/:filename', (req, res) => {
 
 // Endpoint de estado
 app.get('/status', (req, res) => {
-  res.json({ 
-    status: 'ok', 
+  res.json({
+    status: 'ok',
     timestamp: new Date().toISOString(),
     environment: process.env.NODE_ENV || 'development'
   });
@@ -91,28 +89,28 @@ app.get('/status', (req, res) => {
 // Endpoint para buscar
 app.post('/search', async (req, res) => {
   const { searchTerm } = req.body;
-  
+
   if (!searchTerm) {
-    return res.status(400).json({ 
-      success: false, 
-      error: 'Falta el término de búsqueda' 
+    return res.status(400).json({
+      success: false,
+      error: 'Falta el término de búsqueda'
     });
   }
 
   try {
     console.log(`Iniciando búsqueda para: ${searchTerm}`);
     const results = await scrapeOCC(searchTerm, true);
-    
-    res.json({ 
-      success: true, 
+
+    res.json({
+      success: true,
       message: `Scraping completado. Se encontraron ${results.length} vacantes`,
       count: results.length
     });
   } catch (error) {
     console.error('Error en el scraping:', error);
-    res.status(500).json({ 
-      success: false, 
-      error: error.message 
+    res.status(500).json({
+      success: false,
+      error: error.message
     });
   }
 });
@@ -165,8 +163,8 @@ app.get('/resultados.pdf', (req, res) => {
 // Manejo de errores global
 app.use((error, req, res, next) => {
   console.error('Error no manejado:', error);
-  res.status(500).json({ 
-    success: false, 
+  res.status(500).json({
+    success: false,
     error: 'Error interno del servidor'
   });
 });
