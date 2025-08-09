@@ -9,7 +9,14 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 const app = express();
-app.use(cors());
+app.use(cors({
+  origin: [
+    'http://localhost:3000',
+    'https://localhost:3000',
+    /\.vercel\.app$/  // Permitir todos los subdominios de Vercel
+  ],
+  credentials: true
+}));
 app.use(express.json());
 
 // Endpoint principal
@@ -23,6 +30,38 @@ app.get('/', (req, res) => {
       resultados: 'GET /resultados.json'
     }
   });
+});
+
+app.get('/geocode', async (req, res) => {
+  const { q } = req.query;
+  if (!q) {
+    return res.status(400).json({ error: 'Falta el parámetro q' });
+  }
+  
+  // Tu API key de LocationIQ
+  const apiKey = process.env.LOCATIONIQ_API_KEY || 'pk.8e189bb0bea1772e515ad047bed32836';
+  const url = `https://us1.locationiq.com/v1/search.php?key=${apiKey}&q=${encodeURIComponent(q)}&countrycodes=mx&format=json&limit=1&addressdetails=1`;
+  
+  try {
+    // Importar fetch dinámicamente
+    const fetch = (await import('node-fetch')).default;
+    const response = await fetch(url, {
+      headers: {
+        'User-Agent': 'Scrapin-OCC/1.0 (scrapin-occ@render.com)'
+      }
+    });
+    
+    if (!response.ok) {
+      console.error(`Error en LocationIQ: ${response.status} ${response.statusText}`);
+      return res.status(500).json({ error: 'Error al consultar LocationIQ' });
+    }
+    
+    const data = await response.json();
+    res.json(data);
+  } catch (err) {
+    console.error('Error en geocodificación:', err);
+    res.status(500).json({ error: 'Error al buscar la ubicación' });
+  }
 });
 
 // Endpoint de estado
